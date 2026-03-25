@@ -121,6 +121,7 @@ export async function executeDynamicWorker(
   input: Record<string, unknown> = {},
   cacheId?: string
 ): Promise<Job> {
+  // Insert job with code - will be executed via executeJobNow
   const job = await db.queryOne<Job>(
     `INSERT INTO jobs_state (job_type, payload, code, language, worker_id, status)
      VALUES ('dynamic_worker', $1::jsonb, $2, $3, $4, 'pending')
@@ -132,11 +133,91 @@ export async function executeDynamicWorker(
     throw new Error("Failed to create dynamic worker job")
   }
 
+  // Execute immediately (for now - could also queue)
+  await executeJobNow(job.job_id)
+
   return job
 }
 
 export async function executeJobNow(jobId: number): Promise<void> {
-  // This would trigger the worker to execute the job
-  // In a real system, this would send a message to the worker runtime
-  console.log(`Triggering execution for job ${jobId}`)
+  // Get job from database
+  const job = await db.queryOne<{
+    job_id: number
+    code: string
+    language: string
+    payload: Record<string, unknown>
+    worker_id: string | null
+    status: string
+  }>(
+    "SELECT job_id, code, language, payload, worker_id, status FROM jobs_state WHERE job_id = $1",
+    [jobId]
+  )
+
+  if (!job || !job.code) {
+    console.error(`Job ${jobId} not found or has no code`)
+    return
+  }
+
+  // Update to running
+  await db.execute(
+    "UPDATE jobs_state SET status = 'running', attempts = attempts + 1, updated_at = NOW() WHERE job_id = $1",
+    [jobId]
+  )
+
+  try {
+    // Import Cloudflare client dynamically to avoid build issues
+    const { getDynamicWorkerClient } = await import("../lib/cloudflare-client")
+    const client = getDynamicWorkerClient()
+
+    let result: {
+      success: boolean
+      result?: unknown
+      error?: string
+      executionTimeMs: number
+      isWarm?: boolean
+    }
+
+    // Use get() if cacheId exists, otherwise use load()
+    if (job.worker_id) {
+      result = await client.get({
+        cacheId: job.worker_id,
+        code: job.code,
+        input: job.payload,
+      })
+    } else {
+      result = await client.load({
+        code: job.code,
+        input: job.payload,
+      })
+    }
+
+    // Update job with result
+    await db.execute(
+      `UPDATE jobs_state 
+       SET status = $1, 
+           result = $2, 
+           error = $3,
+           updated_at = NOW() 
+       WHERE job_id = $4`,
+      [
+        result.success ? "completed" : "failed",
+        result.success ? JSON.stringify(result.result) : null,
+        result.error || null,
+        jobId,
+      ]
+    )
+
+    console.log(
+      `Job ${jobId} completed in ${result.executionTimeMs}ms (warm: ${result.isWarm})`
+    )
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err)
+
+    await db.execute(
+      "UPDATE jobs_state SET status = 'failed', error = $1, updated_at = NOW() WHERE job_id = $2",
+      [error, jobId]
+    )
+
+    console.error(`Job ${jobId} failed:`, error)
+  }
 }

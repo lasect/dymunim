@@ -1,0 +1,13 @@
+{
+  "name": "dymunim-loader",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-26",
+  "worker_loaders": [
+    {
+      "binding": "LOADER",
+    },
+  ],
+  "vars": {
+    "DYMUNIM_DB_URL": "",
+  },
+}
