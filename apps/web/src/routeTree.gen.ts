@@ -15,6 +15,7 @@ import { Route as MetricsRouteImport } from './routes/metrics'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkersNewRouteImport } from './routes/workers.new'
 import { Route as JobsNewRouteImport } from './routes/jobs.new'
 import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
 
@@ -48,6 +49,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkersNewRoute = WorkersNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => WorkersRoute,
+} as any)
 const JobsNewRoute = JobsNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -65,9 +71,10 @@ export interface FileRoutesByFullPath {
   '/jobs': typeof JobsRouteWithChildren
   '/metrics': typeof MetricsRoute
   '/queues': typeof QueuesRoute
-  '/workers': typeof WorkersRoute
+  '/workers': typeof WorkersRouteWithChildren
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/jobs/new': typeof JobsNewRoute
+  '/workers/new': typeof WorkersNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -75,9 +82,10 @@ export interface FileRoutesByTo {
   '/jobs': typeof JobsRouteWithChildren
   '/metrics': typeof MetricsRoute
   '/queues': typeof QueuesRoute
-  '/workers': typeof WorkersRoute
+  '/workers': typeof WorkersRouteWithChildren
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/jobs/new': typeof JobsNewRoute
+  '/workers/new': typeof WorkersNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,9 +94,10 @@ export interface FileRoutesById {
   '/jobs': typeof JobsRouteWithChildren
   '/metrics': typeof MetricsRoute
   '/queues': typeof QueuesRoute
-  '/workers': typeof WorkersRoute
+  '/workers': typeof WorkersRouteWithChildren
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/jobs/new': typeof JobsNewRoute
+  '/workers/new': typeof WorkersNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/workers'
     | '/jobs/$jobId'
     | '/jobs/new'
+    | '/workers/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/workers'
     | '/jobs/$jobId'
     | '/jobs/new'
+    | '/workers/new'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/workers'
     | '/jobs/$jobId'
     | '/jobs/new'
+    | '/workers/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -129,7 +141,7 @@ export interface RootRouteChildren {
   JobsRoute: typeof JobsRouteWithChildren
   MetricsRoute: typeof MetricsRoute
   QueuesRoute: typeof QueuesRoute
-  WorkersRoute: typeof WorkersRoute
+  WorkersRoute: typeof WorkersRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -176,6 +188,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workers/new': {
+      id: '/workers/new'
+      path: '/new'
+      fullPath: '/workers/new'
+      preLoaderRoute: typeof WorkersNewRouteImport
+      parentRoute: typeof WorkersRoute
+    }
     '/jobs/new': {
       id: '/jobs/new'
       path: '/new'
@@ -205,13 +224,24 @@ const JobsRouteChildren: JobsRouteChildren = {
 
 const JobsRouteWithChildren = JobsRoute._addFileChildren(JobsRouteChildren)
 
+interface WorkersRouteChildren {
+  WorkersNewRoute: typeof WorkersNewRoute
+}
+
+const WorkersRouteChildren: WorkersRouteChildren = {
+  WorkersNewRoute: WorkersNewRoute,
+}
+
+const WorkersRouteWithChildren =
+  WorkersRoute._addFileChildren(WorkersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DemoRoute: DemoRoute,
   JobsRoute: JobsRouteWithChildren,
   MetricsRoute: MetricsRoute,
   QueuesRoute: QueuesRoute,
-  WorkersRoute: WorkersRoute,
+  WorkersRoute: WorkersRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
