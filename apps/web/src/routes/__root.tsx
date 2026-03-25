@@ -10,6 +10,7 @@ import {
   IconStack,
   IconList,
   IconUsers,
+  IconDeviceGamepad,
 } from "@tabler/icons-react"
 
 import appCss from "@workspace/ui/globals.css?url"
@@ -68,6 +69,13 @@ function RootComponent() {
                 icon={<IconChartBar className="h-4 w-4" />}
               >
                 Metrics
+              </NavLink>
+              <div className="my-2 border-t" />
+              <NavLink
+                to="/demo"
+                icon={<IconDeviceGamepad className="h-4 w-4" />}
+              >
+                Demo
               </NavLink>
             </div>
           </nav>
