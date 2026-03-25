@@ -1,21 +1,51 @@
-# shadcn/ui monorepo template
+# Dymunim
 
-This is a TanStack Start monorepo template with shadcn/ui.
+Postgres-backed job queue with Cloudflare Dynamic Workers for code execution.
 
-## Adding components
+## Stack
 
-To add components to your app, run the following command at the root of your `web` app:
+- **Database**: Postgres 16 + PGMQ
+- **Execution**: Cloudflare Dynamic Workers (LOADER.load / LOADER.get)
+- **API**: TanStack Start server functions
+- **UI**: TanStack Start + shadcn/ui
 
-```bash
-pnpm dlx shadcn@latest add button -c apps/web
+## Architecture
+
+```
+UI → Postgres (job storage) → Server Functions → Cloudflare Worker → Dynamic Workers
 ```
 
-This will place the ui components in the `packages/ui/src/components` directory.
+Jobs store JavaScript code in Postgres. Server calls Cloudflare to spawn dynamic workers that execute the code in a sandbox.
 
-## Using components
+## Quick Start
 
-To use the components in your app, import them from the `ui` package.
+1. Deploy Cloudflare Worker:
 
-```tsx
-import { Button } from "@workspace/ui/components/button";
-```
+   ```bash
+   cd cloudflare-worker
+   npm install
+   wrangler deploy
+   ```
+
+2. Copy `.env.example` to `.env` and set `CLOUDFLARE_WORKER_URL`
+
+3. Start database and UI:
+
+   ```bash
+   docker-compose up -d
+   cd apps/web && bun run dev
+   ```
+
+4. Open http://localhost:3000
+
+## Environment Variables
+
+- `DATABASE_URL` - Postgres connection
+- `CLOUDFLARE_WORKER_URL` - Deployed Cloudflare Worker URL
+
+## Key Files
+
+- `cloudflare-worker/src/index.ts` - Worker Loader implementation
+- `apps/web/src/server/functions.ts` - Job API
+- `apps/web/src/routes/workers.new.tsx` - Dynamic worker UI
+- `infrastructure/postgres/migrations/` - Database schema
