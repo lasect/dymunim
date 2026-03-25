@@ -85,7 +85,7 @@ export default {
 
     // Load a fresh Dynamic Worker
     const worker = env.LOADER.load({
-      compatibilityDate: "2025-03-26",
+      compatibilityDate: "$today",
       mainModule: "index.js",
       modules: {
         "index.js": wrappedCode,
@@ -173,7 +173,7 @@ export default {
 
     // Get or create a cached Dynamic Worker
     const worker = env.LOADER.get(cacheId, async () => ({
-      compatibilityDate: "2025-03-26",
+      compatibilityDate: "$today",
       mainModule: "index.js",
       modules: {
         "index.js": wrappedCode,
