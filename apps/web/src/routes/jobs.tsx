@@ -1,8 +1,16 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router"
-import { useState, useEffect } from "react"
-import { IconRefresh, IconPlus, IconFilter, IconEye } from "@tabler/icons-react"
+import { useState, useCallback } from "react"
+import {
+  IconRefresh,
+  IconPlus,
+  IconFilter,
+  IconEye,
+  IconWifi,
+  IconWifiOff,
+} from "@tabler/icons-react"
 import { Button } from "@workspace/ui/components/button"
 import { listJobs, type Job } from "../server/functions"
+import { useWebSocket } from "../hooks/useWebSocket"
 
 export const Route = createFileRoute("/jobs")({
   component: JobsPage,
@@ -24,9 +32,25 @@ function JobsPage() {
     setJobs(updated)
   }
 
-  useEffect(() => {
-    refreshJobs()
-  }, [statusFilter])
+  const handleWebSocketMessage = useCallback(
+    (data: {
+      type: string
+      jobId?: number
+      jobType?: string
+      result?: unknown
+      error?: string
+    }) => {
+      if (data.type === "job_completed" || data.type === "job_failed") {
+        refreshJobs()
+      }
+    },
+    [statusFilter]
+  )
+
+  const { isConnected } = useWebSocket({
+    url: `ws://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:3001`,
+    onMessage: handleWebSocketMessage,
+  })
 
   const getStatusStyles = (status: string) => {
     switch (status) {
@@ -53,6 +77,20 @@ function JobsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-1 text-xs text-muted-foreground"
+            title={
+              isConnected
+                ? "Connected to real-time updates"
+                : "Disconnected from real-time updates"
+            }
+          >
+            {isConnected ? (
+              <IconWifi className="h-4 w-4 text-green-500" />
+            ) : (
+              <IconWifiOff className="h-4 w-4 text-red-500" />
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={refreshJobs}>
             <IconRefresh className="mr-2 h-4 w-4" />
             Refresh

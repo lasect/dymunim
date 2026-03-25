@@ -1,8 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { useState, useEffect } from "react"
-import { IconRefresh, IconActivity } from "@tabler/icons-react"
+import { createFileRoute, Link } from "@tanstack/react-router"
+import { useState, useCallback } from "react"
+import {
+  IconRefresh,
+  IconActivity,
+  IconWifi,
+  IconWifiOff,
+  IconEye,
+} from "@tabler/icons-react"
 import { Button } from "@workspace/ui/components/button"
 import { listWorkers, type Worker } from "../server/functions"
+import { useWebSocket } from "../hooks/useWebSocket"
 
 export const Route = createFileRoute("/workers")({
   component: WorkersPage,
@@ -21,10 +28,20 @@ function WorkersPage() {
     setWorkers(updated)
   }
 
-  useEffect(() => {
-    const interval = setInterval(refreshWorkers, 5000)
-    return () => clearInterval(interval)
+  const handleWebSocketMessage = useCallback((data: { type: string }) => {
+    if (
+      data.type === "worker_heartbeat" ||
+      data.type === "job_completed" ||
+      data.type === "job_failed"
+    ) {
+      refreshWorkers()
+    }
   }, [])
+
+  const { isConnected } = useWebSocket({
+    url: `ws://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:3001`,
+    onMessage: handleWebSocketMessage,
+  })
 
   const getStatusStyles = (status: string) => {
     switch (status) {
@@ -53,10 +70,26 @@ function WorkersPage() {
             Active worker instances and their status
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={refreshWorkers}>
-          <IconRefresh className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-1 text-xs text-muted-foreground"
+            title={
+              isConnected
+                ? "Connected to real-time updates"
+                : "Disconnected from real-time updates"
+            }
+          >
+            {isConnected ? (
+              <IconWifi className="h-4 w-4 text-green-500" />
+            ) : (
+              <IconWifiOff className="h-4 w-4 text-red-500" />
+            )}
+          </div>
+          <Button variant="outline" size="sm" onClick={refreshWorkers}>
+            <IconRefresh className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -96,11 +129,16 @@ function WorkersPage() {
                   <span className="font-medium">{worker.jobs_processed}</span>
                 </div>
                 {worker.current_job_id && (
-                  <div className="flex justify-between">
+                  <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Current Job</span>
-                    <span className="font-mono font-medium">
+                    <Link
+                      to="/jobs/$jobId"
+                      params={{ jobId: String(worker.current_job_id) }}
+                      className="inline-flex items-center gap-1 font-mono font-medium text-primary hover:underline"
+                    >
                       #{worker.current_job_id}
-                    </span>
+                      <IconEye className="h-3 w-3" />
+                    </Link>
                   </div>
                 )}
                 <div className="flex justify-between">
