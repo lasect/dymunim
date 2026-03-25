@@ -1,8 +1,8 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
-    image: postgres:16
+    image: quay.io/tembo/pgmq-pg:latest
     container_name: dymunim-postgres
     environment:
       POSTGRES_USER: postgres
